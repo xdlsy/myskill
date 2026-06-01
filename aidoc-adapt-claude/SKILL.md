@@ -102,7 +102,7 @@ paths: ["{{模块路径}}/**"]
 
 ### 步骤 3：Skills 符号链接
 
-`docs/skills/` 存放项目级可复用能力（由 `aidoc-knowledge-init` 生成）。Claude Code 原生从 `.claude/skills/` 加载 skills，因此创建软链接使其可被发现：
+`docs/skills/` 存放项目级可复用能力（由 `aidoc-skill-init` 生成）。Claude Code 原生从 `.claude/skills/` 加载 skills，因此创建软链接使其可被发现：
 
 ```bash
 ln -s ../docs/skills .claude/skills

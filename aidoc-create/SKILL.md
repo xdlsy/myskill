@@ -1,63 +1,197 @@
 ---
 name: aidoc-create
-description: 用于为存量代码仓生成面向AI的结构化文档框架，包含入口文件、架构文档和代码地图等。由"帮我为代码仓生成结构化文档"、"帮我分析整个代码仓并输出文档"等明确指明需要生成系统化、结构化文档的指令触发。
+description: 为存量代码仓生成面向 AI 的结构化文档框架，包含 AGENTS.md、ARCHITECTURE.md、知识骨架、Claude Code 适配和知识库。由"帮我生成代码仓文档"等指令触发。
 ---
 
 # 代码库文档生成
 
 ## 概览
 
-为存量代码仓生成结构化的文档。全程由 LLM 自主探索，通过交互式阶段合成。
+为存量代码仓生成结构化文档。每个阶段派发一个子 Agent 独立执行，主 Agent 负责编排：派发 → 审核 → 用户确认 → 下一阶段。
+
+## 编排原则
+
+- **一阶段一 Agent**：用 `Agent` 工具派发，避免主上下文膨胀
+- **串行执行**：下游依赖上游产物，按 0→1→2→3→4→5→6 顺序
+- **逐阶段确认**：子 Agent 完成后，主 Agent 审核输出呈现给用户，确认后再推进
+- **幂等跳过**：阶段产物已存在且完整则跳过
+
+---
 
 ## 工作流程
 
-### 阶段 0：采集与确认
+### 阶段 0：代码仓画像
 
-调用 `aidoc-repo-explore` 探索代码仓画像 → `.aidoc/phase0/repo-profile.md`。若该文件已存在且内容完整则跳过。
+派发子 Agent 调用 `aidoc-repo-explore`。
+
+```
+调用 skill `aidoc-repo-explore` 探索代码仓。
+
+1. 采集语言分布、模块结构、构建系统、测试框架、CI/CD
+2. 汇总诊断摘要，展示给用户确认
+3. 确认后写入 .aidoc/phase0/repo-profile.md
+4. 返回摘要供主 Agent 审核
+
+约束：
+- 不确定的判定标注 [? 待确认]
+- 若 .aidoc/phase0/repo-profile.md 已存在且完整，告知主 Agent 跳过
+```
+
+→ 主 Agent 审核画像摘要，确认后进入阶段 1。
 
 ### 阶段 1：根目录 AGENTS.md
 
-调用 `aidoc-repo-init` 生成根目录 `AGENTS.md`（80-150 行），含置信度标注 `[✓ 自动]` / `[~ 推断]` / `[? 待审核]`。
+派发子 Agent 调用 `aidoc-repo-init`。
+
+```
+调用 skill `aidoc-repo-init` 生成根 AGENTS.md。
+
+1. 读取 .aidoc/phase0/repo-profile.md
+2. 生成根 AGENTS.md（80-150 行），标注置信度：[✓ 自动] / [~ 推断] / [? 待审核]
+3. 展示全文供审阅
+4. 确认后写入，报告写入 .aidoc/phase1/report.md
+
+约束：
+- 有冲突时展示 diff，让用户选择保留/合并/替换
+- 坑点章节含 <!-- HUMAN_REVIEW --> 占位符
+```
+
+→ 主 Agent 审核 AGENTS.md 摘要，确认后进入阶段 2。
 
 ### 阶段 2：子模块 AGENTS.md
 
-调用 `aidoc-module-init` 为每个叶子模块生成 `AGENTS.md`（每个 30-50 行）。
+派发子 Agent 调用 `aidoc-module-init`。
+
+```
+调用 skill `aidoc-module-init` 为每个叶子模块生成 AGENTS.md。
+
+1. 从 .aidoc/phase0/repo-profile.md 提取叶子模块清单
+2. 一次性展示清单供用户确认（支持批量确认/跳过/编辑）
+3. 并行派发子代理，为每个模块生成 AGENTS.md（30-50 行）
+4. 汇总展示，确认后写入 .aidoc/phase2/report.md
+
+约束：
+- 只写模块特有内容，不重复根 AGENTS.md
+- 同构模块（3+）可合并为一个子代理
+```
+
+→ 主 Agent 审核模块清单，确认后进入阶段 3。
 
 ### 阶段 3：ARCHITECTURE.md
 
-调用 `aidoc-architecture` 生成 `docs/ARCHITECTURE.md`（≤300 行），使用 matklad 三段式格式：鸟瞰视图 → 代码地图 → 横切关注点。
+派发子 Agent 调用 `aidoc-architecture`。
 
-### 阶段 4：知识架构构建
+```
+调用 skill `aidoc-architecture` 生成 docs/ARCHITECTURE.md。
 
-调用 `aidoc-knowledge-init` 构建专家库知识骨架，包含四个目录：
-- `skills/` — 领域能力目录（可复用操作的 SKILL.md 封装）
-- `docs/adr/` — 决策记录目录（MADR 格式的架构决策记录）
-- `docs/learnings/` — 经验库（开发与运维踩坑教训）
-- `docs/knowledge/` — 知识库（跨模块深层知识文章）
+1. 读取 .aidoc/phase0/repo-profile.md、根 AGENTS.md 和各模块 AGENTS.md
+2. 按 matklad 三段式生成（≤300 行）：
+   - 鸟瞰视图（2-3 句）
+   - 代码地图（每模块 2-5 句，命名但不链接）
+   - 横切关注点（错误处理、可观测性、测试策略、构建部署）
+3. 展示全文供审阅
+4. 确认后回写根 AGENTS.md 索引，报告写入 .aidoc/phase3/report.md
+
+约束：
+- 不确定标注 [? 待审核]，缺失添加 <!-- HUMAN_REVIEW -->
+```
+
+→ 主 Agent 审核架构摘要，确认后进入阶段 4。
+
+### 阶段 4：知识骨架
+
+分两个子阶段串行执行。
+
+#### 阶段 4a：领域能力目录
+
+派发子 Agent 调用 `aidoc-skill-init`。
+
+```
+调用 skill `aidoc-skill-init` 初始化 docs/skills/。
+
+1. 从 scripts/、AGENTS.md、Makefile 等检测可封装的自动化能力
+2. 有候选 → 创建 docs/skills/<name>/SKILL.md；无候选 → 创建占位 AGENTS.md
+3. 展示概览供审阅
+4. 确认后回写根 AGENTS.md 索引，报告写入 .aidoc/phase4a/report.md
+
+约束：
+- description 写明触发短语
+```
+
+→ 主 Agent 审核 skill 清单，确认后进入阶段 4b。
+
+#### 阶段 4b：经验库
+
+派发子 Agent 调用 `aidoc-learnings-init`。
+
+```
+调用 skill `aidoc-learnings-init` 初始化 docs/learnings/。
+
+1. 初始化 LEARNINGS.md、ERRORS.md、FEATURE_REQUESTS.md（勿覆盖）
+2. 从 CLAUDE.md、AGENTS.md 提取可沉淀经验
+3. 展示概览供审阅
+4. 确认后回写根 AGENTS.md 索引，报告写入 .aidoc/phase4b/report.md
+
+约束：
+- 经验以 [LRN-YYYYMMDD-XXX] 格式追加
+- AI 推断标注 <!-- HUMAN_REVIEW -->
+```
+
+→ 主 Agent 审核经验库摘要，确认后进入阶段 5。
 
 ### 阶段 5：Claude Code 适配
 
-使用子 Agent 调用 `aidoc-adapt-claude`，将 aidoc 文档体系接通 Claude Code 原生加载链：
+派发子 Agent 调用 `aidoc-adapt-claude`。
 
-- 生成 `CLAUDE.md` 入口桥接（`@AGENTS.md`）
-- 生成 `.claude/rules/` 路径作用域规则（全局 + 模块索引）
-- 部署 `activator.sh` 并注册为 `UserPromptSubmit` Hook
-
-```bash
-# 以子 Agent 方式调用
-aidoc-adapt-claude
 ```
+调用 skill `aidoc-adapt-claude` 接通 Claude Code 原生加载链。
+
+1. 生成 CLAUDE.md 桥接（@AGENTS.md，不覆盖已有内容）
+2. 生成 .claude/rules/ 规则：
+   - 全局规则 ×3（global-style / global-testing / architecture）
+   - 模块规则 ×N（≤15 行，仅 frontmatter + @-import）
+3. 创建 .claude/skills → ../docs/skills 软链接
+4. 配置 aidoc-learning Hook（部署 activator.sh + 注册 UserPromptSubmit）
+
+完成后交叉验证 → 展示产物树 → 确认后写入 .aidoc/phase5/report.md
+
+约束：
+- CLAUDE.md 仅做指针，不复制内容
+- 规则文件只做 @-import，不复制 AGENTS.md
+- settings.json 合并时保留现有配置
+```
+
+→ 主 Agent 审核适配结果，确认后进入阶段 6。
+
+### 阶段 6：知识库
+
+派发子 Agent 调用 `aidoc-build-knowledge`。
+
+```
+调用 skill `aidoc-build-knowledge` 构建知识库。
+
+1. 采集系统信息（独立模式）或从已有产物推断（管道模式）
+2. 生成系统全景图（C4 Context）→ 容器架构图（C4 Container）
+3. 为核心模块生成 Component 蓝图 → docs/knowledge/modules/
+4. 为核心流程生成时序图 → docs/knowledge/flows/
+5. 为关键决策创建 ADR → docs/knowledge/decisions/
+6. 生成导航索引 → docs/knowledge/README.md
+7. 展示目录树供审阅，确认后回写根 AGENTS.md，报告写入 .aidoc/knowledge/report.md
+
+约束：
+- 模块蓝图 ≤150 行，流程蓝图 ≤120 行
+- 交叉引用用相对路径
+- 模块数 >10 时仅核心模块生成 Component 图
+```
+
+---
 
 ## 完成之后
 
-1. 检查所有生成的 AGENTS.md 文件
-2. 检查 CLAUDE.md 和 .claude/rules/ 是否正确生成
-3. 填写所有 `<!-- HUMAN_REVIEW -->` 占位符
-4. 提交所有生成的文件
+1. 检查所有 AGENTS.md、ARCHITECTURE.md、CLAUDE.md、.claude/rules/ 和 docs/knowledge/
+2. 填写所有 `<!-- HUMAN_REVIEW -->` 占位符
+3. 提交所有生成的文件
 
 ## 幂等性
 
-如果目标路径已存在文件：
-- 不要静默覆盖
-- 展示现有文件与生成内容的差异
-- 让用户选择：保留现有、合并或替换
+已有文件不静默覆盖。展示 diff，让用户选择保留、合并或替换。

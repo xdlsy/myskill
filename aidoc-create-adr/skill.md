@@ -1,46 +1,56 @@
 ---
 name: aidoc-create-adr
-description: '创建架构决策记录（ADR）文档，面向 AI 优化的决策文档。'
+description: 创建单篇架构决策记录（ADR）文档，使用 MADR 格式 + 编码要点（POS/NEG/ALT/IMP/REF）。输出到 docs/knowledge/decisions/ 目录，与 aidoc-build-knowledge 的 ADR 索引和蓝图统一管理。
 ---
 
 # 创建架构决策记录
 
-为 `${input:DecisionTitle}` 创建 ADR 文档，使用结构化格式，兼顾 AI 消费与人类可读性。
+为 `${input:DecisionTitle}` 创建单篇 ADR 文档，使用结构化格式，兼顾 AI 消费与人类可读性。
+
+## 与其他技能的关系
+
+- **`aidoc-build-knowledge`**：负责蓝图全貌（C4 图 + 流程图 + ADR 索引），批量生成时调用本技能创建单篇 ADR
+- **本技能**：专注于单篇 ADR 的创建和编辑，可独立使用，也可被 `aidoc-build-knowledge` 调用
 
 ## 输入
 
+- **决策标题**：`${input:DecisionTitle}`
 - **背景上下文**：`${input:Context}`
 - **决策内容**：`${input:Decision}`
 - **备选方案**：`${input:Alternatives}`
 - **相关人员**：`${input:Stakeholders}`
 
 ## 输入校验
+
 若任一必填输入缺失且无法从对话历史中推断，请在生成 ADR 之前向用户索要缺失的信息。
 
 ## 要求
 
 - 使用精确、无歧义的语言
-- 遵循标准 ADR 格式，包含前置元数据
+- 遵循 MADR 格式，包含 YAML frontmatter 元数据
 - 同时包含正面和负面后果
 - 记录备选方案及其被拒绝的理由
-- 结构化以同时适用于机器解析与人类查阅
 - 多条目章节使用编码要点（3-4 字母前缀 + 3 位数字编号）
+- 关联相关模块和流程（与蓝图双向链接）
 
-ADR 必须保存至 `/docs/adr/` 目录，命名规范为：`adr-NNNN-[标题缩写].md`，其中 NNNN 为下一位顺序 4 位数字编号（如 `adr-0001-数据库选型.md`）。
+## 输出路径
+
+ADR 保存至 `docs/knowledge/decisions/` 目录（与 `aidoc-build-knowledge` 的输出目录一致）。
+
+命名规范：`adr-NNNN-[标题缩写].md`，其中 NNNN 为下一位顺序 4 位数字编号。
+
+- 扫描 `docs/knowledge/decisions/` 目录中已有的 ADR，取最大编号 +1
+- 若目录不存在，从 `adr-0001` 开始
+- 示例：`adr-0001-数据库选型.md`
 
 ## 必需的文档结构
-
-文档必须遵循以下模板，确保所有章节恰当地填写完整。Markdown 的前置元数据应按以下示例正确编排：
 
 ```md
 ---
 title: "ADR-NNNN: [决策标题]"
 status: "Proposed"
 date: "YYYY-MM-DD"
-authors: "[相关人员姓名/角色]"
 tags: ["架构", "决策"]
-supersedes: ""
-superseded_by: ""
 ---
 
 # ADR-NNNN: [决策标题]
@@ -63,13 +73,11 @@ superseded_by: ""
 
 - **POS-001**：[有益成果与优势]
 - **POS-002**：[性能、可维护性、可扩展性方面的改善]
-- **POS-003**：[与架构原则的一致性]
 
 ### 负面
 
 - **NEG-001**：[权衡、限制、缺陷]
 - **NEG-002**：[引入的技术债务或复杂性]
-- **NEG-003**：[风险与未来挑战]
 
 ## 备选方案
 
@@ -86,12 +94,36 @@ superseded_by: ""
 ## 实施注意事项
 
 - **IMP-001**：[关键实施考量]
-- **IMP-002**：[迁移或推出版本策略（如适用）]
-- **IMP-003**：[监控与成功标准]
+- **IMP-002**：[迁移或推出版本策略]
 
 ## 参考资料
 
 - **REF-001**：[相关 ADR]
 - **REF-002**：[外部文档]
-- **REF-003**：[参考的标准或框架]
+
+## 关联
+
+- **模块**：[关联的模块，链接到 docs/knowledge/modules/]
+- **流程**：[关联的流程，链接到 docs/knowledge/flows/]
 ```
+
+## 编码要点规范
+
+| 前缀 | 含义 | 用途 |
+|------|------|------|
+| `POS-XXX` | Positive | 正面后果 |
+| `NEG-XXX` | Negative | 负面后果与权衡 |
+| `ALT-XXX` | Alternative | 备选方案描述及拒绝理由 |
+| `IMP-XXX` | Implementation | 实施注意事项 |
+| `REF-XXX` | Reference | 参考资料 |
+
+每个 ADR 内独立编号，从 001 开始。
+
+## 生成后
+
+1. 展示 ADR 全文供审阅
+2. 确认后写入 `docs/knowledge/decisions/adr-NNNN-<slug>.md`
+3. 若 `docs/knowledge/decisions/_index.md` 已存在，提示用户更新索引表
+4. 若该 ADR 关联了特定模块或流程，提示用户是否需要在模块/流程文档中添加反向链接
+
+> 模板参考：`aidoc-build-knowledge/templates/adr.tmpl.md`
