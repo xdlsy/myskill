@@ -9,7 +9,7 @@ description: 用于探索和采集代码仓画像信息，生成诊断摘要供�
 
 LLM 自主探索代码仓，采集代码规模、语言分布、模块结构、构建系统、测试框架、CI/CD 等关键信息，汇总为诊断摘要供用户确认。结果记入内存，供下游 skill 消费。
 
-**纯 LLM 驱动，不依赖外部脚本。** 用 `tokei`、`ls`、`git log`、文件读取等原生工具完成所有采集。
+**纯 LLM 驱动。** 用 `tokei`、`ls`、`git log`、文件读取等工具完成所有采集。步骤 1 使用 `scripts/collect-code-stats.sh`（自动降级 tokei → cloc → find+wc），推荐优先使用。
 
 ## 适用场景
 
@@ -20,24 +20,23 @@ LLM 自主探索代码仓，采集代码规模、语言分布、模块结构、�
 
 ## 前置条件
 
-- 推荐安装 `tokei`（代码行数统计）：`brew install tokei`；若不可用则用 `cloc` 或 `find` + `wc -l` 代替
+- 无需预装任何统计工具（脚本自动降级 tokei → cloc → find+wc）
+- 脚本路径：`scripts/collect-code-stats.sh`（shell）+ `scripts/collect-code-stats.py`（python3 引擎）
 - 从目标仓库根目录运行
 
 ## 工作流程
 
 ### 步骤 1：代码规模与语言分布
 
-运行 `tokei`（首选）获取按语言分类的文件数、代码行数、注释行数。
+运行采集脚本，自动降级（tokei → cloc → find+wc），无需预装任何工具：
 
-若 tokei 不可用，降级方案：
-- `cloc .` 
-- 或按主要扩展名分别统计：`find . -name "*.py" | xargs wc -l` 等
+```bash
+bash scripts/collect-code-stats.sh --format text --dir <target>           # 人类可读
+bash scripts/collect-code-stats.sh --format json --dir <target>           # 程序消费
+bash scripts/collect-code-stats.sh --format text --dir <target> --exclude build --exclude third_party
+```
 
-输出要点：
-- 识别 **primary_language**（代码行数最多的那门语言）
-- 列出所有检测到的语言及其代码行数、文件数、占比
-- 注意区分真正的源代码和 Markdown/JSON/YAML 等配置/文档文件
-- 对 C/C++ 项目，注意区分 C 和 C++ 各自的文件数/行数（`.c`/`.h` vs `.cpp`/`.cc`/`.cxx`/`.hpp`/`.hxx`），以及两者混合的比例
+脚本自动完成：检测采集工具、按语言分类统计（文件数 / 代码行 / 注释行 / 空行）、识别主语言、区分源码与非源码文件、输出结构化结果。LLM 直接执行并展示结果即可。
 
 ### 步骤 2：目录结构与模块划分
 
@@ -69,9 +68,55 @@ LLM 自主探索代码仓，采集代码规模、语言分布、模块结构、�
 
 **识别叶子模块：** 不再包含独立子模块的最细粒度功能单元。一个根模块下可有多个叶子模块。
 
-### 步骤 3：构建系统检测
+### 步骤 3：构建系统与模块依赖
 
-扫描以下构建文件并推断构建命令：
+步骤 3 完成两件事：**识别构建系统并推断构建命令** + **检测模块间依赖关系**。依赖检测有两遍扫描：脚本做结构化解析（Pass 1 静态 + Pass 2 动态增强），LLM 对脚本无法覆盖或降级的部分做补充。
+
+#### 3.1 推荐方式：使用依赖采集脚本
+
+运行项目自带的依赖采集脚本，自动检测构建系统、提取依赖关系：
+
+```bash
+# JSON 输出（默认，供程序消费）
+bash scripts/collect-dependencies.sh --format json --dir <target>
+
+# 人类可读文本输出
+bash scripts/collect-dependencies.sh --format text --dir <target>
+
+# 仅静态解析（不运行构建工具）
+bash scripts/collect-dependencies.sh --format json --dir <target> --no-dynamic
+```
+
+脚本位于 `scripts/collect-dependencies.sh`（shell wrapper）+ `scripts/collect-dependencies.py`（核心引擎）+ `scripts/parsers/`（各构建系统解析器）。
+
+**支持 5 种构建系统**：CMake / Maven / Gradle / Go Modules / Python (pyproject.toml)
+
+**两遍扫描机制**：
+1. **Pass 1（静态，100% 可用）**：纯文件解析 → 内部依赖（模块 A → 模块 B）+ 外部依赖名称
+2. **Pass 2（动态，best-effort）**：运行构建工具 → 精确版本号 + 传递依赖 + 版本冲突检测
+3. **降级策略**：按模块降级（如 mvn 可用但 go 没装 → Maven 模块走动态、Go 模块走静态并标记 degraded）
+
+**LLM 读取脚本输出的重点字段**：
+- `analysis_summary` — total_modules, internal_edges, dynamic/degraded 计数, circular_dependencies, entry_points, topological_order
+- `dependency_graph` — nodes[] + edges[]（内部依赖关系图）
+- `modules[]` — 每个模块的内部/外部依赖详情、降级标记
+- `external_deps_index` — 外部依赖版本冲突概览
+
+**各 Parser 提取策略速览**：
+
+| 构建系统 | 静态提取 | 动态增强 | 降级时损失 |
+|---------|---------|---------|----------|
+| CMake | `target_link_libraries` → 内部依赖；`find_package` / `FetchContent` → 外部依赖 | —（CMake 仅有静态，无标准依赖树命令） | — |
+| Maven | pom.xml `<dependencies>` → 内部匹配 GAV 坐标 + 外部名称/声明版本 | `mvn dependency:tree -DoutputType=json` → 解析后版本 + 传递依赖 + 冲突 | 版本号可能不准（declared vs resolved） |
+| Gradle | `implementation project(':lib')` → 内部；`implementation 'g:a:v'` → 外部名称/声明版本 | `./gradlew dependencies --configuration runtimeClasspath` → 解析后版本 + 传递依赖 + 冲突 | 同上 |
+| Go | go.mod `require` / `replace` → 内部（本地路径替换）+ 外部 | `go mod graph` → 传递依赖 + 精确版本 | 无传递依赖信息 |
+| Python | pyproject.toml `dependencies` / `[tool.uv.sources]` / `[tool.poetry.dependencies]` | `pipdeptree --json` → 安装后版本 + 传递依赖 | 无传递依赖，只有约束（>=1.0 不是实际版本） |
+
+#### 3.2 脚本不可用时的备选方案：手动采集
+
+若脚本不可用，LLM 对每个构建系统按以下优先级手动采集依赖信息：
+
+**检测构建文件并推断构建命令：**
 
 | 构建文件 | 语言/生态 | 推断命令 |
 |---------|----------|---------|
@@ -97,6 +142,24 @@ LLM 自主探索代码仓，采集代码规模、语言分布、模块结构、�
 | `pyproject.toml` / `setup.py` | Python | `pip install -e .` |
 | `go.mod` | Go | `go build ./...` |
 | `Cargo.toml` | Rust | `cargo build` |
+
+**手动提取依赖关系的关键指令（每个构建系统只保留最核心的 2-3 条）：**
+
+- **CMake**：`target_link_libraries(A [PUBLIC|PRIVATE|INTERFACE] B)` → A 依赖 B；`add_subdirectory()` → 子模块列表；`find_package(X)` → 外部依赖
+- **Maven**：`<dependencies><dependency>` → groupId:artifactId 匹配内部模块；`<modules>` → 子模块
+- **Gradle**：`implementation project(':lib')` → 内部依赖；`implementation 'g:a:v'` → 外部依赖；`settings.gradle` 的 `include()` → 子项目
+- **Go**：go.mod 的 `require` / `replace` 指令；replace 指向 `./` 或 `../` 的为内部依赖
+- **Python**：pyproject.toml 的 `dependencies`；`[tool.uv.sources]` 中 `path = "../lib"` 的为内部依赖
+
+#### 3.3 补充分析（LLM 始终执行，无论脚本是否运行）
+
+**3.3.1 降级模块补充**：
+脚本输出中标注了 `degraded: true` 的模块及其外部依赖 → LLM 手动读取构建文件，补充版本信息：
+
+**3.3.2 脚本未覆盖的构建系统**（Makefile / Bazel / Meson / Cargo / package.json）：
+LLM 手动读取构建文件，提取依赖信息和构建命令，格式与脚本输出保持一致。
+
+**3.3.3 构建选项专项检测**（保留原步骤 3 的深度检测）：
 
 **CMake 专项检测**（若检测到 `CMakeLists.txt`）：
 1. 读取顶层 `CMakeLists.txt` 的前 120 行，提取：
@@ -155,43 +218,73 @@ LLM 自主探索代码仓，采集代码规模、语言分布、模块结构、�
    - `*.pc` 文件 → pkg-config（检查是否有自定义 `.pc.in` 模板）
    - `.gitmodules` → Git 子模块依赖（常见于 C/C++ 项目的 `third_party/` 或 `external/`）
 
-	**Gradle 专项检测**（若检测到 `build.gradle` / `build.gradle.kts`）：
-	1. 检测 Gradle 项目类型：
-	   - **Groovy DSL**：`build.gradle` + `settings.gradle`
-	   - **Kotlin DSL**：`build.gradle.kts` + `settings.gradle.kts`
-	   - **Gradle Wrapper**：`gradlew` / `gradlew.bat` + `gradle/wrapper/gradle-wrapper.properties`（提取 Gradle 版本）
-	   - **多项目构建**：`settings.gradle(.kts)` 中包含 `include(...)` 或 `includeFlat(...)`
-	2. 读取 `build.gradle(.kts)` 的前 80 行，提取：
-	   - `plugins { }` — 插件列表（如 `java`、`kotlin`、`application`、`spring-boot`、`org.springframework.boot`）
-	   - `group` / `version` — 项目坐标
-	   - `sourceCompatibility` / `targetCompatibility` — Java 版本
-	   - `repositories { }` — 仓库配置（mavenCentral、google、jitpack、私有仓库 URL）
-	   - `dependencies { }` — 关键依赖（识别 Spring Boot、Ktor、Quarkus 等框架）
-	   - `application { mainClass.set(...) }` — 主类（可运行应用）
-	   - `test { useJUnitPlatform() }` — 测试引擎
-	   - `tasks.withType<Test> { ... }` — 测试配置
-	   - `kotlin { jvmToolchain(...) }` — Kotlin 版本
-	3. 若为多项目构建，扫描 `settings.gradle(.kts)` 中的子项目列表：
-	   - `include(":app", ":lib", ":shared")` → 列出所有子项目名称
-	   - 检查各子项目的 `build.gradle(.kts)` 以确定类型（application / library）
-	4. 检测 Gradle 插件生态：
-	   | 插件 | 推断信息 |
-	   |------|---------|
-	   | `java` / `java-library` | 基础 Java 项目 |
-	   | `kotlin("jvm")` / `kotlin("multiplatform")` | Kotlin 项目 / Kotlin 多平台 |
-	   | `application` | 可运行应用（含 main 类） |
-	   | `org.springframework.boot` / `war` | Spring Boot 应用 / 部署方式 |
-	   | `com.android.application` / `com.android.library` | Android 项目 |
-	   | `org.jetbrains.kotlin.android` | Kotlin Android 项目 |
-	   | `org.graalvm.buildtools.native` | GraalVM Native Image |
-	   | `com.diffplug.spotless` | 代码格式化 |
-	5. 检测 Gradle 缓存与性能配置：
-	   - `gradle.properties` 中是否包含 `org.gradle.caching=true` / `org.gradle.parallel=true`
-	   - `org.gradle.jvmargs` — Gradle 进程 JVM 参数
-	   - 是否有自定义的 `init.gradle` 或 `gradle/init.d/` 脚本
-	6. 检测 Gradle 版本目录（Version Catalog）：
-	   - 是否存在 `gradle/libs.versions.toml`（Gradle 7.0+ 推荐依赖管理方式）
-	   - 提取 `[versions]`、`[libraries]`、`[bundles]`、`[plugins]` 中的关键条目
+**Gradle 专项检测**（若检测到 `build.gradle` / `build.gradle.kts`）：
+1. 检测 Gradle 项目类型：
+   - **Groovy DSL**：`build.gradle` + `settings.gradle`
+   - **Kotlin DSL**：`build.gradle.kts` + `settings.gradle.kts`
+   - **Gradle Wrapper**：`gradlew` / `gradlew.bat` + `gradle/wrapper/gradle-wrapper.properties`（提取 Gradle 版本）
+   - **多项目构建**：`settings.gradle(.kts)` 中包含 `include(...)` 或 `includeFlat(...)`
+2. 读取 `build.gradle(.kts)` 的前 80 行，提取：
+   - `plugins { }` — 插件列表（如 `java`、`kotlin`、`application`、`spring-boot`、`org.springframework.boot`）
+   - `group` / `version` — 项目坐标
+   - `sourceCompatibility` / `targetCompatibility` — Java 版本
+   - `repositories { }` — 仓库配置（mavenCentral、google、jitpack、私有仓库 URL）
+   - `dependencies { }` — 关键依赖（识别 Spring Boot、Ktor、Quarkus 等框架）
+   - `application { mainClass.set(...) }` — 主类（可运行应用）
+   - `test { useJUnitPlatform() }` — 测试引擎
+   - `tasks.withType<Test> { ... }` — 测试配置
+   - `kotlin { jvmToolchain(...) }` — Kotlin 版本
+3. 若为多项目构建，扫描 `settings.gradle(.kts)` 中的子项目列表：
+   - `include(":app", ":lib", ":shared")` → 列出所有子项目名称
+   - 检查各子项目的 `build.gradle(.kts)` 以确定类型（application / library）
+4. 检测 Gradle 插件生态：
+   | 插件 | 推断信息 |
+   |------|---------|
+   | `java` / `java-library` | 基础 Java 项目 |
+   | `kotlin("jvm")` / `kotlin("multiplatform")` | Kotlin 项目 / Kotlin 多平台 |
+   | `application` | 可运行应用（含 main 类） |
+   | `org.springframework.boot` / `war` | Spring Boot 应用 / 部署方式 |
+   | `com.android.application` / `com.android.library` | Android 项目 |
+   | `org.jetbrains.kotlin.android` | Kotlin Android 项目 |
+   | `org.graalvm.buildtools.native` | GraalVM Native Image |
+   | `com.diffplug.spotless` | 代码格式化 |
+5. 检测 Gradle 缓存与性能配置：
+   - `gradle.properties` 中是否包含 `org.gradle.caching=true` / `org.gradle.parallel=true`
+   - `org.gradle.jvmargs` — Gradle 进程 JVM 参数
+   - 是否有自定义的 `init.gradle` 或 `gradle/init.d/` 脚本
+6. 检测 Gradle 版本目录（Version Catalog）：
+   - 是否存在 `gradle/libs.versions.toml`（Gradle 7.0+ 推荐依赖管理方式）
+   - 提取 `[versions]`、`[libraries]`、`[bundles]`、`[plugins]` 中的关键条目
+
+#### 3.4 汇总输出
+
+将脚本输出的结构化依赖数据 + 3.3 的补充分析合并，为步骤 8 的 repo-profile 准备以下内容：
+
+**依赖图汇总**：
+```
+🔗 模块依赖关系
+
+内部依赖（N 条边）：
+  services/order ──→ libs/common       (compile)
+  services/order ──→ libs/network      (compile)
+  libs/network     ──→ libs/common     (compile)
+
+拓扑排序：libs/common → libs/network → services/order
+入口点：services/order, tools/cli
+⚠ 循环依赖（如有）：A → B → C → A
+
+外部依赖（M 个，Top 5）：
+  com.google.guava:guava — 2 个模块引用
+  org.springframework.boot:spring-boot-starter-web — 1 个模块引用
+
+⚠ 降级提示（如有）：
+  libs/network: 外部依赖为静态解析结果（go 未安装）
+```
+
+**与步骤 2 联动——用依赖图校验模块类型**：
+- 被 ≥2 个模块依赖但标为 `service` → `[? 建议纠正为 library]`
+- 不被任何模块依赖的 `library` → `[? 是否为独立组件]`
+- 形成循环依赖的模块 → `[! 循环依赖: A → B → A]`
 
 ### 步骤 4：测试框架与命令
 
@@ -295,6 +388,22 @@ LLM 自主探索代码仓，采集代码规模、语言分布、模块结构、�
   module2 → mvn clean package -f module2/pom.xml
   （module3 未检测到构建文件 — 可能是 header-only C 库）
 
+🔗 模块依赖：
+  内部依赖（N 条边）：
+    services/order ——→ libs/common       (compile)
+    services/order ——→ libs/network      (compile)
+    libs/network     ——→ libs/common     (compile)
+
+  拓扑排序：libs/common → libs/network → services/order
+  入口点：services/order, tools/cli
+  ⚠ 循环依赖（如有）：A → B → C → A
+
+  外部依赖（M 个，Top 5）：
+    com.google.guava:guava — 2 个模块引用
+    org.springframework.boot:spring-boot-starter-web — 1 个模块引用
+
+  ⚠ 降级提示（如有）：libs/network 外部依赖为静态解析结果（go 未安装）
+
 测试：
   module1 → cd build && ctest --output-on-failure
   module2 → pytest --cov -n auto
@@ -323,6 +432,7 @@ CI/CD：
    - 根模块列表（表格：路径、类型、文件数、代码行数、描述）
    - 叶子模块列表（表格：路径、类型、文件数、代码行数、描述）
    - 构建命令（每个模块的构建命令）
+   - 模块依赖关系（内部依赖图 + 外部依赖 Top N + 拓扑排序 + 入口点 + 循环依赖标注）
    - 测试命令（每个模块的测试命令）
    - 代码检查工具列表（或"未检测到"）
    - CI/CD 流水线摘要（或"未检测到 CI 配置"）
