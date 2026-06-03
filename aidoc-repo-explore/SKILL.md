@@ -1,6 +1,6 @@
 ---
 name: aidoc-repo-explore
-description: 用于探索和采集代码仓画像信息，生成诊断摘要供用户确认。适用于代码仓文档化、新人上手、架构评审等场景。结果写入 .aidoc/phase0/repo-profile.md 供下游 skill（如 aidoc-create）消费。由"帮我分析代码仓"、"采集代码仓信息"、"探索项目结构"等指令触发。
+description: 用于探索和采集代码仓画像信息，生成诊断摘要供用户确认。适用于代码仓文档化、新人上手、架构评审等场景。结果写入 .aidoc/phase0/repo-profile.md 供下游 skill（如 aidoc-build）消费。由"帮我分析代码仓"、"采集代码仓信息"、"探索项目结构"等指令触发。
 ---
 
 # 代码仓探索与画像采集
@@ -437,8 +437,8 @@ CI/CD：
    - 代码检查工具列表（或"未检测到"）
    - CI/CD 流水线摘要（或"未检测到 CI 配置"）
    - 提交规范判定及示例
-3. 告知用户："画像已写入 `.aidoc/phase0/repo-profile.md`，下游 skill（如 aidoc-create）可直接读取使用。"
-4. 在使用 `aidoc-create` 或类似下游 skill 时，先检查 `.aidoc/phase0/repo-profile.md` 是否存在，避免重复采集
+3. 告知用户："画像已写入 `.aidoc/phase0/repo-profile.md`，下游 skill（如 aidoc-build）可直接读取使用。"
+4. 在使用 `aidoc-build` 或类似下游 skill 时，先检查 `.aidoc/phase0/repo-profile.md` 是否存在，避免重复采集
 
 ## 注意事项
 

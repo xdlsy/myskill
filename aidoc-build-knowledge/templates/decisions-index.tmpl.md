@@ -14,7 +14,7 @@
 > 暂无架构决策记录。当做出重要的技术选型或架构决策时，在此目录下创建 ADR。
 >
 > 创建 ADR 的方式：
-> 1. 使用 `/aidoc-create-adr` 命令
+> 1. 使用 `/aidoc-writing-adr` 命令
 > 2. 或手动按 [ADR 模板](#adr-模板) 格式创建 Markdown 文件
 {{/NO_ADRS}}
 
@@ -74,4 +74,4 @@ date: "YYYY-MM-DD"
 
 ---
 
-> 返回：[蓝图首页](../README.md)
+> 返回：[蓝图首页](../AGENTS.md)

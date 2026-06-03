@@ -1,6 +1,6 @@
 ---
 name: aidoc-repo-init
-description: 为代码仓生成根目录 AGENTS.md（80-150 行）。依赖 .aidoc/phase0/repo-profile.md 中已确认的画像数据。由 aidoc-create 阶段 1 触发，也可独立使用。
+description: 为代码仓生成根目录 AGENTS.md（80-150 行）。依赖 .aidoc/phase0/repo-profile.md 中已确认的画像数据。由 aidoc-build 阶段 1 触发，也可独立使用。
 ---
 
 # 根目录 AGENTS.md 生成

@@ -32,7 +32,7 @@ C4_Context
 | **{{MODULE_NAME}}** | {{RESPONSIBILITY}} | {{FLOW_COUNT}} | [Component 图](modules/{{MODULE_FILE}}.md) |
 {{/MODULES}}
 
-> 模块总览见 [modules/_index.md](modules/_index.md)
+> 模块总览见 [modules/INDEX.md](modules/INDEX.md)
 
 ## 按流程查阅（{{FLOW_COUNT}} 条核心流程）
 
@@ -42,7 +42,7 @@ C4_Context
 | [{{FLOW_NAME}}](flows/{{FLOW_FILE}}.md) | {{TRIGGER}} | {{MODULE_COUNT}} 个模块 | {{KEY_STEPS}} |
 {{/FLOWS}}
 
-> 流程总览见 [flows/_index.md](flows/_index.md)
+> 流程总览见 [flows/INDEX.md](flows/INDEX.md)
 
 ## 按决策查阅
 
@@ -52,14 +52,14 @@ C4_Context
 | [ADR-{{NUMBER}}](decisions/adr-{{NUMBER}}-{{SLUG}}.md) | {{TITLE}} | {{STATUS}} | {{DATE}} |
 {{/ADRS}}
 
-> 决策索引见 [decisions/_index.md](decisions/_index.md)
+> 决策索引见 [decisions/INDEX.md](decisions/INDEX.md)
 
 ## 快速导航
 
 | 我想了解... | 看这里 |
 |------------|--------|
 | 系统整体架构 | [container-architecture.md](container-architecture.md) |
-| 某个模块的内部设计 | [modules/_index.md](modules/_index.md) → 找到对应模块 |
-| 某个业务流程怎么走的 | [flows/_index.md](flows/_index.md) → 找到对应流程 |
-| 为什么做某个技术决策 | [decisions/_index.md](decisions/_index.md) |
-| 跨模块的通用机制（认证、日志等） | [crosscutting/_index.md](crosscutting/_index.md) |
+| 某个模块的内部设计 | [modules/INDEX.md](modules/INDEX.md) → 找到对应模块 |
+| 某个业务流程怎么走的 | [flows/INDEX.md](flows/INDEX.md) → 找到对应流程 |
+| 为什么做某个技术决策 | [decisions/INDEX.md](decisions/INDEX.md) |
+| 跨模块的通用机制（认证、日志等） | [crosscutting/INDEX.md](crosscutting/INDEX.md) |

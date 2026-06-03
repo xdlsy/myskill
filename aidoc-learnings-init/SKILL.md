@@ -1,6 +1,6 @@
 ---
 name: aidoc-learnings-init
-description: 为代码仓初始化经验库（docs/learnings/），包含 LEARNINGS.md、ERRORS.md、FEATURE_REQUESTS.md。从已有文档中提取可沉淀的经验，初始化后启用持续记录工作流（配套 aidoc-learning）。依赖阶段 0-3 产出的 AGENTS.md。由 aidoc-create 阶段 4 触发，也可独立使用。
+description: 为代码仓初始化经验库（docs/learnings/），包含 LEARNINGS.md、ERRORS.md、FEATURE_REQUESTS.md。从已有文档中提取可沉淀的经验，初始化后启用持续记录工作流（配套 aidoc-learning）。依赖阶段 0-3 产出的 AGENTS.md。由 aidoc-build 阶段 4 触发，也可独立使用。
 ---
 
 # 经验库初始化

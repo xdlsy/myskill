@@ -1,5 +1,5 @@
 ---
-name: aidoc-create
+name: aidoc-build
 description: 为存量代码仓生成面向 AI 的结构化文档框架，包含 AGENTS.md、ARCHITECTURE.md、知识骨架、Claude Code 适配和知识库。由"帮我生成代码仓文档"等指令触发。
 ---
 
@@ -65,17 +65,14 @@ description: 为存量代码仓生成面向 AI 的结构化文档框架，包含
 ```
 调用 skill `aidoc-module-init` 为每个叶子模块生成 AGENTS.md。
 
-1. 从 .aidoc/phase0/repo-profile.md 提取叶子模块清单
-2. 一次性展示清单供用户确认（支持批量确认/跳过/编辑）
-3. 并行派发子代理，为每个模块生成 AGENTS.md（30-50 行）
-4. 汇总展示，确认后写入 .aidoc/phase2/report.md
-
-约束：
-- 只写模块特有内容，不重复根 AGENTS.md
-- 同构模块（3+）可合并为一个子代理
+1. 提取模块清单并确认
+2. 并行派发子代理生成各模块 AGENTS.md
+3. 汇总审阅，确认后写入
+4. 回查根 AGENTS.md 准确性并修正不一致项
+5. 报告写入 .aidoc/phase2/report.md
 ```
 
-→ 主 Agent 审核模块清单，确认后进入阶段 3。
+→ 主 Agent 审核模块清单和回查报告，确认后进入阶段 3。
 
 ### 阶段 3：ARCHITECTURE.md
 

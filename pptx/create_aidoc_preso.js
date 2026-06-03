@@ -238,7 +238,7 @@ async function build() {
     s.addText("Phase 5: aidoc-adapt-claude", { x:0.7, y:ey, w:3.1, h:0.32, fontSize:14, fontFace:"Calibri", color:C.white, bold:true, margin:0 });
     s.addText("Claude Code 原生适配 | @-import 加载链 | Hook 注册", { x:0.7, y:ey+0.32, w:3.1, h:0.28, fontSize:10, fontFace:"Calibri", color:C.textMuted, margin:0 });
     // Support skills
-    [{ t:"aidoc-create-adr", d:"架构决策记录（MADR 格式）" },{ t:"aidoc-learning", d:"经验捕获与技能升级（L3 持续积累）" }].forEach((sk,i)=>{
+    [{ t:"aidoc-writing-adr", d:"架构决策记录（MADR 格式）" },{ t:"aidoc-learning", d:"经验捕获与技能升级（L3 持续积累）" }].forEach((sk,i)=>{
       const sx2 = 4.2 + i*2.55;
       s.addShape("rect", { x:sx2, y:ey, w:2.4, h:0.65, fill:{color:C.darkBg2} });
       s.addShape("rect", { x:sx2, y:ey, w:0.06, h:0.65, fill:{color:C.amber} });
@@ -247,7 +247,7 @@ async function build() {
     });
     // Orchestrator
     s.addShape("rect", { x:2.5, y:4.6, w:5, h:0.55, fill:{color:C.primary, transparency:85} });
-    s.addText("aidoc-create — 主流程编排器，一键串联 Phase 0–5", { x:2.5, y:4.6, w:5, h:0.55, fontSize:14, fontFace:"Calibri", color:C.white, align:"center", valign:"middle", margin:0 });
+    s.addText("aidoc-build — 主流程编排器，一键串联 Phase 0–5", { x:2.5, y:4.6, w:5, h:0.55, fontSize:14, fontFace:"Calibri", color:C.white, align:"center", valign:"middle", margin:0 });
   }
 
   // ──────────────── S6-S10: Phase Details ────────────────
@@ -376,10 +376,10 @@ async function build() {
     ]);
   }
 
-  // ──────────────── S12: aidoc-create-adr ────────────────
+  // ──────────────── S12: aidoc-writing-adr ────────────────
   {
     const s = pres.addSlide();
-    const icp = whiteHeader(s, "aidoc-create-adr", "架构决策记录 — MADR 格式 · L2 决策知识层 · AI 可程序化检索", C.amber, "");
+    const icp = whiteHeader(s, "aidoc-writing-adr", "架构决策记录 — MADR 格式 · L2 决策知识层 · AI 可程序化检索", C.amber, "");
     icon(s, "clip", icp.x, icp.y, icp.w, icp.h);
 
     // ── Left: ADR structure as styled section cards ──
@@ -518,12 +518,12 @@ async function build() {
     ]);
   }
 
-  // ──────────────── S15: aidoc-create 主流程 ────────────────
+  // ──────────────── S15: aidoc-build 主流程 ────────────────
   {
     const s = pres.addSlide();
     s.background = { color: C.white };
 
-    s.addText("aidoc-create — 主流程编排器", { x:0.8, y:0.35, w:8.4, h:0.65, fontSize:30, fontFace:"Georgia", color:C.textDark, bold:true, margin:0 });
+    s.addText("aidoc-build — 主流程编排器", { x:0.8, y:0.35, w:8.4, h:0.65, fontSize:30, fontFace:"Georgia", color:C.textDark, bold:true, margin:0 });
     s.addText("一键串联 Phase 0–5，交互式确认 + 幂等安全 + 数据驱动", { x:0.8, y:0.95, w:8.4, h:0.35, fontSize:14, fontFace:"Calibri", color:C.textMuted, margin:0 });
 
     const fw=1.45, fh=1.1, fg=0.12, fsx=0.35, fy=1.7;
@@ -564,10 +564,10 @@ async function build() {
 
     s.addShape("rect", { x:1.2, y:1.8, w:7.6, h:1.0, fill:{color:C.darkBg2} });
     s.addText("帮我为代码仓生成结构化文档", { x:1.2, y:1.8, w:7.6, h:1.0, fontSize:22, fontFace:"Georgia", color:C.teal, align:"center", valign:"middle", italic:true, margin:0 });
-    s.addText("→ 触发 aidoc-create，自动执行 Phase 0-5 全流程，构建 L0-L4 知识架构", { x:1.2, y:2.85, w:7.6, h:0.3, fontSize:11, fontFace:"Calibri", color:C.textMuted, align:"center", margin:0 });
+    s.addText("→ 触发 aidoc-build，自动执行 Phase 0-5 全流程，构建 L0-L4 知识架构", { x:1.2, y:2.85, w:7.6, h:0.3, fontSize:11, fontFace:"Calibri", color:C.textMuted, align:"center", margin:0 });
 
     [{ cmd:"探索项目结构", sk:"aidoc-repo-explore", d:"快速了解陌生代码仓全貌" },
-     { cmd:"创建 ADR", sk:"aidoc-create-adr", d:"记录关键架构决策及理由" },
+     { cmd:"创建 ADR", sk:"aidoc-writing-adr", d:"记录关键架构决策及理由" },
      { cmd:"记录学习经验", sk:"aidoc-learning", d:"捕获错误/纠正/最佳实践" }]
     .forEach((uc,i)=>{
       const ux=1.2+i*2.65, uy=3.4;

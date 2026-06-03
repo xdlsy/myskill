@@ -1,6 +1,6 @@
 ---
 name: aidoc-architecture
-description: 为代码仓生成 ARCHITECTURE.md（≤300 行），使用 matklad 三段式格式（鸟瞰视图 / 代码地图 / 横切关注点）。依赖 .aidoc/phase0/repo-profile.md 和已有的 AGENTS.md。由 aidoc-create 阶段 3 触发，也可独立使用。
+description: 为代码仓生成 ARCHITECTURE.md（≤300 行），使用 matklad 三段式格式（鸟瞰视图 / 代码地图 / 横切关注点）。依赖 .aidoc/phase0/repo-profile.md 和已有的 AGENTS.md。由 aidoc-build 阶段 3 触发，也可独立使用。
 ---
 
 # 架构文档生成

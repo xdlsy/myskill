@@ -1,5 +1,5 @@
 ---
-name: aidoc-create-adr
+name: aidoc-writing-adr
 description: 创建单篇架构决策记录（ADR）文档，使用 MADR 格式 + 编码要点（POS/NEG/ALT/IMP/REF）。输出到 docs/knowledge/decisions/ 目录，与 aidoc-build-knowledge 的 ADR 索引和蓝图统一管理。
 ---
 
@@ -126,4 +126,4 @@ tags: ["架构", "决策"]
 3. 若 `docs/knowledge/decisions/_index.md` 已存在，提示用户更新索引表
 4. 若该 ADR 关联了特定模块或流程，提示用户是否需要在模块/流程文档中添加反向链接
 
-> 模板参考：`aidoc-build-knowledge/templates/adr.tmpl.md`
+> 模板参考：`templates/adr.tmpl.md`

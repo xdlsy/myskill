@@ -51,4 +51,4 @@ C4_Container
 
 > 图例：**→** 同步调用 | **⇢** 异步消息 | **—** 无直接依赖
 >
-> 各模块的内部组件架构见 [modules/](modules/_index.md)
+> 各模块的内部组件架构见 [modules/](modules/INDEX.md)

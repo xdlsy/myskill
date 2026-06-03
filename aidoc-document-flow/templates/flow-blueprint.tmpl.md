@@ -46,4 +46,4 @@ sequenceDiagram
 
 ---
 
-> 返回：[流程总览](_index.md) | [蓝图首页](../README.md)
+> 返回：[流程总览](INDEX.md) | [蓝图首页](../AGENTS.md)

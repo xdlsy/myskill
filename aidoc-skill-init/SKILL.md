@@ -1,6 +1,6 @@
 ---
 name: aidoc-skill-init
-description: 扫描代码仓中可封装为 skill 的自动化能力，生成领域能力目录（docs/skills/）。依赖阶段 0-3 产出的 AGENTS.md 和 ARCHITECTURE.md。由 aidoc-create 阶段 4 触发，也可独立使用。
+description: 扫描代码仓中可封装为 skill 的自动化能力，生成领域能力目录（docs/skills/）。依赖阶段 0-3 产出的 AGENTS.md 和 ARCHITECTURE.md。由 aidoc-build 阶段 4 触发，也可独立使用。
 ---
 
 # 领域能力目录初始化

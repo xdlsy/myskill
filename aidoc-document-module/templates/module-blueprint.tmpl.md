@@ -1,6 +1,6 @@
 # {{MODULE_NAME}}
 
-> **所属系统**：[{{SYSTEM_NAME}}](../README.md) | **类型**：{{MODULE_TYPE}} | **技术栈**：{{TECH_STACK}}
+> **所属系统**：[{{SYSTEM_NAME}}](../AGENTS.md) | **类型**：{{MODULE_TYPE}} | **技术栈**：{{TECH_STACK}}
 
 ## 职责
 
@@ -68,4 +68,4 @@ C4_Component
 
 ---
 
-> 返回：[模块总览](_index.md) | [蓝图首页](../README.md)
+> 返回：[模块总览](INDEX.md) | [蓝图首页](../AGENTS.md)

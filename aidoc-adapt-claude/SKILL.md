@@ -1,6 +1,6 @@
 ---
 name: aidoc-adapt-claude
-description: 用于将 aidoc 文档体系适配为 Claude Code 原生加载结构。触发场景：(1) aidoc-create 完成后的收尾阶段，(2) 已有 AGENTS.md 需要接通 Claude Code 加载链，(3) 用户要求"适配 Claude Code"、"配置 Claude 规则"、(4) 需要将 aidoc-learning 的 activator.sh 注册为 Hook。
+description: 用于将 aidoc 文档体系适配为 Claude Code 原生加载结构。触发场景：(1) aidoc-build 完成后的收尾阶段，(2) 已有 AGENTS.md 需要接通 Claude Code 加载链，(3) 用户要求"适配 Claude Code"、"配置 Claude 规则"、(4) 需要将 aidoc-learning 的 activator.sh 注册为 Hook。
 ---
 
 # Aidoc 适配 Claude Code
@@ -14,7 +14,7 @@ description: 用于将 aidoc 文档体系适配为 Claude Code 原生加载结�
 3. 创建 `.claude/skills/` 软链接（→ `docs/skills/`），使项目级 skills 可被 Claude Code 原生发现
 4. 配置 `aidoc-learning` 的 `activator.sh` 为 `UserPromptSubmit` Hook
 
-**前置条件：** 项目根目录已有 `AGENTS.md`（由 `aidoc-create` 生成或手动编写）。
+**前置条件：** 项目根目录已有 `AGENTS.md`（由 `aidoc-build` 生成或手动编写）。
 
 ## 工作流程
 

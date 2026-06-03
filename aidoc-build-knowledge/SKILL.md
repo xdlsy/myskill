@@ -1,6 +1,6 @@
 ---
 name: aidoc-build-knowledge
-description: 为代码仓构建知识库（Knowledge Base），使用 Mermaid + C4 模型 + ADR 承载系统架构图、模块内部架构、跨模块流程图和架构决策记录。支持独立使用，也可作为 aidoc-create 阶段 3 的增强步骤。输出到 docs/knowledge/ 目录。
+description: 为代码仓构建知识库（Knowledge Base），使用 Mermaid + C4 模型 + ADR 承载系统架构图、模块内部架构、跨模块流程图和架构决策记录。支持独立使用，也可作为 aidoc-build 阶段 3 的增强步骤。输出到 docs/knowledge/ 目录。
 ---
 
 # 知识库构建
@@ -74,161 +74,133 @@ description: 为代码仓构建知识库（Knowledge Base），使用 Mermaid + 
 - "模块划分是否准确？"
 - "模块间的依赖关系是否正确？"
 
-### 步骤 3：模块蓝图（C4 Level 3: Component）
+### 步骤 3：模块蓝图（C4 Level 3: Component）—— 派发子 Agent
 
-为每个模块生成 `docs/knowledge/modules/<module-name>.md`。
+为步骤 0 收集到的每个模块，**派发独立子 Agent** 并调用 `aidoc-document-module` skill 生成 `docs/knowledge/modules/<module-name>.md`。
 
-每份模块蓝图包含：
+**派发策略**：
+- 所有模块子 Agent **并行派发**（互不依赖）
+- 每个子 Agent 携带该模块的完整上下文（名称、技术栈、组件清单、接口表、关联流程、关联 ADR）
+- 子 Agent 自动处理幂等性（若目标文件已存在则询问处理策略）
 
-1. **模块职责**：一句话描述 + 所属业务域
-2. **C4 Component 图**（Mermaid `C4_Component`）：模块内部的组件及其交互
-3. **对外接口表**：
+**子 Agent 调用示例**：
+```
+Agent prompt: "使用 aidoc-document-module skill 为模块 [{模块名}] 生成知识文档。
+模块信息如下：
+- 名称：{模块名}
+- 技术栈：{技术栈}
+- 职责：{一句话描述}
+- 内部组件：{组件清单}
+- 对外接口（入站/出站）：{接口表}
+- 关联流程：{流程列表}
+- 关联 ADR：{ADR 列表}"
 
-| 接口 | 方向 | 调用方/被调用方 | 所属流程 |
-|------|------|----------------|----------|
-| `POST /orders` | 入站 | API 网关 | [流程1：下单](../flows/flow-1-xxx.md) |
-| `OrderCreated` 事件 | 出站 | 支付服务 | [流程2：支付](../flows/flow-2-xxx.md) |
+子 Agent 会自动：
+1. 调用 aidoc-document-module skill 执行发现→生成→更新索引→确认流程
+2. 生成 C4 Component 图 + 对外接口表 + 关联流程表
+3. 更新 docs/knowledge/modules/INDEX.md
+```
 
-4. **关联流程**：该模块参与的核心流程列表（含链接）
-5. **关键设计决策**：该模块特有的架构选择（链接到 ADR）
+**等待所有模块子 Agent 完成后**，主 Agent 汇总结果并生成 `docs/knowledge/modules/INDEX.md`（模板：`templates/module-index.tmpl.md`）。
 
-模板：`templates/module-blueprint.tmpl.md`
+> **并行安全**：子 Agent 仅生成各自的 `<module-name>.md` 文件，INDEX.md 由主 Agent 统一处理，避免竞态。
+> 
+> 模块蓝图的具体结构和模板由 `aidoc-document-module` skill 定义，详见该 skill 的步骤 1。
 
-同时生成 `docs/knowledge/modules/_index.md`（模块总览表）。
+### 步骤 4：流程蓝图（Runtime View）—— 派发子 Agent
 
-模板：`templates/module-index.tmpl.md`
+为步骤 0 收集到的每条核心流程，**派发独立子 Agent** 并调用 `aidoc-document-flow` skill 生成 `docs/knowledge/flows/<flow-name>.md`。
 
-> **规模控制**：如果模块数 > 10，优先为核心/复杂模块生成 Component 图；简单模块（如纯 CRUD、配置模块）可跳过 Component 图，仅在 `_index.md` 中保留条目。
+**派发策略**：
+- 所有流程子 Agent **并行派发**（互不依赖）
+- 每个子 Agent 携带该流程的完整上下文（名称、类型、触发条件、参与模块与步骤、异常路径）
+- 子 Agent 自动处理幂等性（若目标文件已存在则询问处理策略）
 
-### 步骤 4：流程蓝图（Runtime View）
+**子 Agent 调用示例**：
+```
+Agent prompt: "使用 aidoc-document-flow skill 为流程 [{流程名}] 生成知识文档。
+流程信息如下：
+- 名称：{流程名}
+- 类型：{同步请求/异步事件/定时任务/混合}
+- 触发条件：{触发描述}
+- 目标：{流程目标}
+- 参与模块与步骤：{步骤表}
+- 异常路径：{异常路径表}"
 
-为每条核心流程生成 `docs/knowledge/flows/<flow-name>.md`。
+子 Agent 会自动：
+1. 调用 aidoc-document-flow skill 执行发现→生成→更新索引→确认流程
+2. 生成 Mermaid 时序图 + 参与模块表 + 异常路径表
+3. 更新 docs/knowledge/flows/INDEX.md
+```
 
-每份流程蓝图包含：
+**等待所有流程子 Agent 完成后**，主 Agent 汇总结果并生成 `docs/knowledge/flows/INDEX.md`（模板：`templates/flow-index.tmpl.md`）。
 
-1. **流程概述**：一句话描述流程目标和触发条件
-2. **参与模块表**：
-
-| 步骤 | 模块 | 动作 | 关键数据 |
-|------|------|------|----------|
-| 1 | [订单服务](../modules/order-service.md) | 创建订单 | `order_id`, `user_id` |
-| 2 | [库存服务](../modules/inventory-service.md) | 锁定库存 | `sku_id`, `quantity` |
-
-3. **Mermaid 时序图**（`sequenceDiagram`）：完整的跨模块调用序列
-4. **异常路径**：
-
-| 异常点 | 触发条件 | 处理方式 |
-|--------|----------|----------|
-| 步骤2：库存不足 | `available < requested` | 返回错误，订单不创建 |
-| 步骤3：风控拒绝 | 评分 < 阈值 | 标记订单为待审核 |
-
-5. **关联模块**：反向链接到参与的模块文档
-
-模板：`templates/flow-blueprint.tmpl.md`
-
-同时生成 `docs/knowledge/flows/_index.md`（流程总览表）。
-
-模板：`templates/flow-index.tmpl.md`
-
-> **时序图注意事项**：
-> - 参与者名称使用中文（如 `订单服务`），与模块文档名保持一致
-> - 标注关键的请求/响应数据
-> - 异常分支用 `alt/else` 或 `opt` 块表示
-> - 如果某步骤是异步的（消息队列/事件），用 `-->>` 虚线箭头 + Note 标注
+> **并行安全**：子 Agent 仅生成各自的 `<flow-name>.md` 文件，INDEX.md 由主 Agent 统一处理，避免竞态。
+>
+> 流程蓝图的具体结构和模板由 `aidoc-document-flow` skill 定义，详见该 skill 的步骤 1。
 
 ### 步骤 5：架构决策记录（ADR）
 
 为步骤 0 收集到的关键技术决策创建独立的 ADR 文档，并生成决策索引。
 
-#### 5a：创建单篇 ADR
+#### 5a：创建单篇 ADR —— 派发子 Agent
 
-为每个关键决策生成 `docs/knowledge/decisions/adr-NNNN-<slug>.md`。
+为步骤 0 收集到的每个关键决策，**派发独立子 Agent** 并调用 `aidoc-writing-adr` skill 生成 `docs/knowledge/decisions/adr-NNNN-<slug>.md`。
+
+**派发策略**：
+- 所有 ADR 子 Agent **并行派发**（互不依赖）
+- 每个子 Agent 携带该决策的完整上下文（标题、背景、决策内容、备选方案）
+- 子 Agent 自动扫描目录取下一个 ADR 编号，处理幂等性
+
+**子 Agent 调用示例**：
+```
+Agent prompt: "使用 aidoc-writing-adr skill 为决策 [{决策标题}] 创建 ADR 文档。
+决策信息如下：
+- 决策标题：{标题}
+- 背景上下文：{背景}
+- 决策内容：{决策}
+- 备选方案：{备选方案列表}
+- 关联模块：{模块列表}
+- 关联流程：{流程列表}"
+
+子 Agent 会自动：
+1. 调用 aidoc-writing-adr skill 执行输入校验→生成 ADR→写入文件流程
+2. 使用 MADR 格式 + 编码要点（POS/NEG/ALT/IMP/REF）
+3. 关联相关模块和流程文档
+```
+
+**等待所有 ADR 子 Agent 完成后**，主 Agent 汇总结果。
 
 **生成前先确认**：展示检测到的决策列表，询问用户：
 - "以下决策是否需要记录？哪些需要补充或修改？"
 - "每条决策有哪些备选方案？"
 
-**ADR 格式**（MADR + 编码要点）：
-
-```markdown
----
-title: "ADR-NNNN: [决策标题]"
-status: "Proposed"
-date: "YYYY-MM-DD"
-tags: ["架构", "决策"]
----
-
-# ADR-NNNN: [决策标题]
-
-## 状态
-**提议** | 已采纳 | 已拒绝 | 已替代 | 已废弃
-
-## 背景上下文
-[问题、约束、环境]
-
-## 决策
-[所选方案及理由]
-
-## 后果
-### 正面
-- **POS-001**：[优势]
-### 负面
-- **NEG-001**：[权衡]
-
-## 备选方案
-### [方案名称]
-- **ALT-001**：**描述**：[说明]
-- **ALT-002**：**拒绝理由**：[原因]
-
-## 实施注意事项
-- **IMP-001**：[关键考量]
-
-## 参考资料
-- **REF-001**：[相关文档]
-
-## 关联
-- **模块**：[关联的模块]
-- **流程**：[关联的流程]
-```
-
-模板：`templates/adr.tmpl.md`
-
-**编码要点规范**：
-- `POS-XXX`：正面后果（Positive）
-- `NEG-XXX`：负面后果（Negative）
-- `ALT-XXX`：备选方案描述及拒绝理由（Alternative）
-- `IMP-XXX`：实施注意事项（Implementation）
-- `REF-XXX`：参考资料（Reference）
-- 编号从 001 开始，每个 ADR 独立编号
-
-**命名规范**：`adr-NNNN-<slug>.md`，NNNN 为 4 位顺序编号（如 `adr-0001-数据库选型.md`）。扫描 `docs/knowledge/decisions/` 目录取下一个编号。
-
-**输入校验**：若某条决策的背景、决策内容、备选方案缺失且无法从对话中推断，标记 `<!-- HUMAN_REVIEW: 请补充... -->` 而非编造内容。
+> ADR 的格式（MADR + 编码要点 POS/NEG/ALT/IMP/REF）、命名规范、输入校验由 `aidoc-writing-adr` skill 定义，详见该 skill。
 
 #### 5b：生成决策索引和横切关注点索引
 
-生成 `docs/knowledge/decisions/_index.md`：
+生成 `docs/knowledge/decisions/INDEX.md`：
 - ADR 清单表（编号、决策、状态、日期、关联模块、关联流程）
 - 按主题分类的热力图
 - ADR 模板引用
 
 模板：`templates/decisions-index.tmpl.md`
 
-生成 `docs/knowledge/crosscutting/_index.md`：
+生成 `docs/knowledge/crosscutting/INDEX.md`：
 - 列出跨模块的通用关注点：错误处理、认证鉴权、日志追踪、配置管理等
 - 如果已有 `docs/ARCHITECTURE.md`，提取其横切关注点章节
 - 暂不展开为完整文章（留给知识库的后续深度文章生成），仅提供索引和简要说明
 
 ### 步骤 6：知识库导航索引
 
-生成 `docs/knowledge/README.md` 作为蓝图总入口。
+生成 `docs/knowledge/AGENTS.md` 作为蓝图总入口。
 
 包含：
 1. **系统全景图**（嵌入 `system-context.md` 中的 C4 Context 图或引用）
 2. **按模块查阅**：10 个模块的表格（模块名、职责、参与流程数）
 3. **按流程查阅**：4 条核心流程的表格（流程名、描述、涉及模块数）
 4. **按决策查阅**：关键 ADR 列表
-5. **快速导航**：指向各子目录 `_index.md` 的链接
+5. **快速导航**：指向各子目录 `INDEX.md` 的链接
 
 模板：`templates/blueprint-index.tmpl.md`
 
@@ -242,22 +214,22 @@ tags: ["架构", "决策"]
 📦 知识库已生成：
 
 docs/knowledge/
-├── README.md                       # 知识库导航索引
+├── AGENTS.md                       # 知识库导航索引
 ├── system-context.md               # C4 Level 1: 系统全景
 ├── container-architecture.md       # C4 Level 2: 容器架构
 ├── modules/
-│   ├── _index.md                   # 模块总览（{N} 个模块）
+│   ├── INDEX.md                   # 模块总览（{N} 个模块）
 │   ├── {module-a}.md               # C4 Level 3: Component 图
 │   └── ...
 ├── flows/
-│   ├── _index.md                   # 流程总览（{M} 条流程）
+│   ├── INDEX.md                   # 流程总览（{M} 条流程）
 │   ├── {flow-1}.md                 # Mermaid 时序图
 │   └── ...
 ├── decisions/
-│   ├── _index.md                   # ADR 索引（{K} 篇）
+│   ├── INDEX.md                   # ADR 索引（{K} 篇）
 │   └── adr-0001-xxx.md
 └── crosscutting/
-    └── _index.md                   # 横切关注点索引
+    └── INDEX.md                   # 横切关注点索引
 ```
 
 2. 确认重点：
@@ -269,7 +241,7 @@ docs/knowledge/
 3. 用户确认后，询问是否需要**回写到根 AGENTS.md**（若存在），追加知识库索引链接：
    ```markdown
    ## 知识库 [~ 推断]
-   详见 [Knowledge Base](docs/knowledge/README.md)
+   详见 [Knowledge Base](docs/knowledge/AGENTS.md)
    ```
 
 4. 写入完成报告到 `.aidoc/knowledge/report.md`：
@@ -288,15 +260,15 @@ docs/knowledge/
 ## 清单
 | 文件 | 类型 | 状态 |
 |------|------|------|
-| docs/knowledge/README.md | 导航索引 | ✓ |
+| docs/knowledge/AGENTS.md | 导航索引 | ✓ |
 | docs/knowledge/system-context.md | C4 Context | ✓ |
 | docs/knowledge/container-architecture.md | C4 Container | ✓ |
-| docs/knowledge/modules/_index.md | 模块索引 | ✓ |
+| docs/knowledge/modules/INDEX.md | 模块索引 | ✓ |
 | docs/knowledge/modules/{name}.md | 模块蓝图 | ✓（×{N}） |
-| docs/knowledge/flows/_index.md | 流程索引 | ✓ |
+| docs/knowledge/flows/INDEX.md | 流程索引 | ✓ |
 | docs/knowledge/flows/{name}.md | 流程蓝图 | ✓（×{M}） |
-| docs/knowledge/decisions/_index.md | ADR 索引 | ✓ |
-| docs/knowledge/crosscutting/_index.md | 横切索引 | ✓ |
+| docs/knowledge/decisions/INDEX.md | ADR 索引 | ✓ |
+| docs/knowledge/crosscutting/INDEX.md | 横切索引 | ✓ |
 
 ## 待人工补充
 {汇总所有需要人工补充的内容}
@@ -314,8 +286,6 @@ docs/knowledge/
 
 ## 文件约束
 
-- 每份模块蓝图 ≤ 150 行
-- 每份流程蓝图 ≤ 120 行
-- 时序图 ≤ 30 个交互步骤（过多则考虑拆分流程）
 - 所有 Mermaid 代码块正确标注语言（`mermaid`）
-- 所有模块/流程文档间的交叉引用使用相对路径链接
+- 所有文档间的交叉引用使用相对路径链接
+- 模块蓝图、流程蓝图、ADR 的具体约束详见各自子 skill（`aidoc-document-module`、`aidoc-document-flow`、`aidoc-writing-adr`）
