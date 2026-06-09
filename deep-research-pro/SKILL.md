@@ -105,10 +105,10 @@ Sub-questions investigated: [list]
 
 ### Step 6: Save & Deliver
 
-Save the full report:
+Save the full report under this skill's directory:
 ```bash
-mkdir -p ~/clawd/research/[slug]
-# Write report to ~/clawd/research/[slug]/report.md
+mkdir -p /Users/lsy/.claude/skills/deep-research-pro/reports/[slug]
+# Write report to /Users/lsy/.claude/skills/deep-research-pro/reports/[slug]/report.md
 ```
 
 Then deliver:
@@ -142,7 +142,7 @@ sessions_spawn(
   Read /home/clawdbot/clawd/skills/deep-research-pro/SKILL.md first.
   Goal: [user's goal]
   Specific angles: [any specifics]
-  Save report to ~/clawd/research/[slug]/report.md
+  Save report to /Users/lsy/.claude/skills/deep-research-pro/reports/[slug]/report.md
   When done, wake the main session with key findings.",
   label: "research-[slug]",
   model: "opus"

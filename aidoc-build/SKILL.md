@@ -12,7 +12,7 @@ description: 为存量代码仓生成面向 AI 的结构化文档框架，包含
 ## 编排原则
 
 - **一阶段一 Agent**：用 `Agent` 工具派发，避免主上下文膨胀
-- **串行执行**：下游依赖上游产物，按 0→1→2→3→4→5→6 顺序
+- **串行执行**：下游依赖上游产物，按 0→1→2→3→4→5a→5b→6 顺序
 - **逐阶段确认**：子 Agent 完成后，主 Agent 审核输出呈现给用户，确认后再推进
 - **幂等跳过**：阶段产物已存在且完整则跳过
 
@@ -136,7 +136,11 @@ description: 为存量代码仓生成面向 AI 的结构化文档框架，包含
 
 → 主 Agent 审核经验库摘要，确认后进入阶段 5。
 
-### 阶段 5：Claude Code 适配
+### 阶段 5：工具链适配
+
+分两个子阶段串行执行。
+
+#### 阶段 5a：Claude Code 适配
 
 派发子 Agent 调用 `aidoc-adapt-claude`。
 
@@ -158,7 +162,31 @@ description: 为存量代码仓生成面向 AI 的结构化文档框架，包含
 - settings.json 合并时保留现有配置
 ```
 
-→ 主 Agent 审核适配结果，确认后进入阶段 6。
+→ 主 Agent 审核 Claude Code 适配结果，确认后进入阶段 5b。
+
+#### 阶段 5b：OpenCode 适配
+
+派发子 Agent 调用 `aidoc-adapt-opencode`。
+
+```
+调用 skill `aidoc-adapt-opencode` 接通 OpenCode 原生加载链。
+
+1. 验证 AGENTS.md 入口（OpenCode 原生读取，无需桥接）
+2. 配置 aidoc-learning 为 OpenCode TypeScript 插件（.opencode/plugins/）
+3. 交叉验证：AGENTS.md 存在、.claude/skills/ 软链接可发现、插件已配置
+4. 展示产物树，确认后写入 .aidoc/phase5/opencode-report.md
+
+前置条件：
+- 已运行 aidoc-adapt-claude（创建 .claude/skills/ 软链接，OpenCode 通过 ~/.claude/skills/ 路径发现 skills）
+
+约束：
+- OpenCode 原生读取 AGENTS.md，无需生成桥接文件
+- TypeScript 插件机制（tui.prompt.append），不依赖 shell hook
+- .claude/ 和 .opencode/ 双工具链可共存
+- 报告文件与 Claude 版分开存放（opencode-report.md），避免覆盖
+```
+
+→ 主 Agent 审核 OpenCode 适配结果，确认后进入阶段 6。
 
 ### 阶段 6：知识库
 
@@ -185,7 +213,7 @@ description: 为存量代码仓生成面向 AI 的结构化文档框架，包含
 
 ## 完成之后
 
-1. 检查所有 AGENTS.md、ARCHITECTURE.md、CLAUDE.md、.claude/rules/ 和 docs/knowledge/
+1. 检查所有 AGENTS.md、ARCHITECTURE.md、CLAUDE.md、.claude/rules/、.opencode/plugins/ 和 docs/knowledge/
 2. 填写所有 `<!-- HUMAN_REVIEW -->` 占位符
 3. 提交所有生成的文件
 
