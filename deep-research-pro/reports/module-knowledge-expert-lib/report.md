@@ -3,7 +3,7 @@
 
 ## 执行摘要
 
-你当前的 CodeHub 已经具备了**结构层知识管理**的良好基础（aidoc 三阶段管线 → AGENTS.md + CLAUDE.md + codebase-profile.json），但这套体系主要解决的是"**这个模块是什么/怎么写的**"（结构知识）。要构建真正的专家库，需要在现有基础上补全三个缺失的维度：**经验知识**（遇到过的坑和调试记录）、**决策知识**（为什么这么设计）、**跨模块关系知识**（模块间语义关联而非仅依赖方向）。业界 2025-2026 正在收敛到一套**五层知识架构**：热记忆（AGENTS.md）→ 领域专家（SKILL.md）→ 决策记录（ADR）→ 经验库（knowledge nodes）→ 知识图谱（cross-module graph）。本报告基于你的实际代码仓状态，给出一个可直接落地的渐进式方案。
+你当前的 CodeHub 已经具备了**结构层知识管理**的良好基础（dockit 三阶段管线 → AGENTS.md + CLAUDE.md + codebase-profile.json），但这套体系主要解决的是"**这个模块是什么/怎么写的**"（结构知识）。要构建真正的专家库，需要在现有基础上补全三个缺失的维度：**经验知识**（遇到过的坑和调试记录）、**决策知识**（为什么这么设计）、**跨模块关系知识**（模块间语义关联而非仅依赖方向）。业界 2025-2026 正在收敛到一套**五层知识架构**：热记忆（AGENTS.md）→ 领域专家（SKILL.md）→ 决策记录（ADR）→ 经验库（knowledge nodes）→ 知识图谱（cross-module graph）。本报告基于你的实际代码仓状态，给出一个可直接落地的渐进式方案。
 
 ---
 
@@ -16,7 +16,7 @@
 | **仓级别** | AGENTS.md + CLAUDE.md + codebase-profile.json | TickTask, GIDS, BrowserGateway, superpowers | ★★★★ |
 | **模块级** | 叶子模块 AGENTS.md（30-50行，职责+约定+依赖） | TickTask（backend/{api,service,repository,model,ai,websocket}），BrowserGateway（{service,api,tcpserver,websocket,...} 共12个） | ★★★★ |
 | **文档级** | docs/ 下架构/API/模块文档（.md） | GIDS（architecture.md, api.md），counter-insight（API/PARSER/DEPENDENCIES/DATA/TEST），MyAgent（docs/modules/ 10个模块拆分明细） | ★★★ |
-| **流程级** | aidoc-* 三阶段自动生成管线 | 可复用到任意 repo | ★★★★ |
+| **流程级** | dockit-* 三阶段自动生成管线 | 可复用到任意 repo | ★★★★ |
 | **开发流程** | BMAD 全套方法技能（PRD/架构/Epic/Story/Review/Test） | 已安装 | 待激活 |
 
 ### 1.2 缺失的维度（What's Missing）
@@ -84,13 +84,13 @@
 
 **当前最痛的缺口**：你的 CLAUDE.md 里已经有个别经验（如 TickTask 的"重启规则"），但这些知识散落在各 repo 的 CLAUDE.md 里，缺乏统一的结构和生命周期。
 
-**建议方案**：为每个 repo 增加 `learnings/` 目录（或复用 `.aidoc/` 目录）：
+**建议方案**：为每个 repo 增加 `learnings/` 目录（或复用 `.dockit/` 目录）：
 
 ```
 TickTask/
 ├── AGENTS.md                    # L0: 项目规则（已有）
 ├── CLAUDE.md                    # L0: Claude 专用（已有）
-├── .aidoc/
+├── .dockit/
 │   ├── phase0/repo-profile.md   # 画像数据（已有）
 │   ├── phase1/report.md         # 根 AGENTS.md 生成记录（已有）
 │   ├── phase2/report.md         # 模块 AGENTS.md 生成记录（已有）
@@ -223,7 +223,7 @@ Go 后端需要在 main.go 中组装依赖链：config → DB → repos → serv
     → 从会话转录中检测"调试成功"模式（error → fix → verify）
     → 生成经验节点草稿（dry_run: true，不直接写入）
     → 下次会话开始时展示给人类："上次会话检测到 2 条可沉淀的经验，要审核吗？"
-      → 审核通过：写入 .aidoc/learnings/
+      → 审核通过：写入 .dockit/learnings/
       → 审核驳回：归档为 reference
 ```
 
@@ -296,7 +296,7 @@ CodeHub/
 │   ├── codebase-profile.json        # 机器可读元数据
 │   ├── backend/internal/*/
 │   │   └── AGENTS.md                # L0: 模块热记忆（已有）✓
-│   ├── .aidoc/learnings/            # L3: 模块经验库（新增）★
+│   ├── .dockit/learnings/            # L3: 模块经验库（新增）★
 │   │   ├── INDEX.md
 │   │   ├── sqlite-concurrent-writes.md
 │   │   ├── gorm-automigrate-pitfalls.md
@@ -321,10 +321,10 @@ CodeHub/
 
 | 阶段 | 内容 | 工作量 | 收益 | 依赖 |
 |------|------|--------|------|------|
-| **Week 1** | 在 TickTask repo 试点：创建 `.aidoc/learnings/INDEX.md` + 从现有 CLAUDE.md 中提取 3-5 条经验写为 learnings node | 2h | 验证模板和流程 | 无 |
+| **Week 1** | 在 TickTask repo 试点：创建 `.dockit/learnings/INDEX.md` + 从现有 CLAUDE.md 中提取 3-5 条经验写为 learnings node | 2h | 验证模板和流程 | 无 |
 | **Week 2** | 为 TickTask 的 3 个最关键的架构决策补充 ADR | 1.5h | 决策不再丢失 | Week 1 |
 | **Week 3** | 为 TickTask 的 repository→service→api 链路写 GRAPH.md | 1h | 跨模块变更影响可见 | Week 2 |
-| **Week 4** | 将模式复制到 GIDS + BrowserGateway（利用 aidoc-module-init 批量生成经验节点占位符） | 3h | 多 repo 覆盖 | Week 1 模板验证 |
+| **Week 4** | 将模式复制到 GIDS + BrowserGateway（利用 dockit-module-agents 批量生成经验节点占位符） | 3h | 多 repo 覆盖 | Week 1 模板验证 |
 | **Month 2** | 配置 Claude Code hooks 实现会话结束自动经验提取 | 4h | 知识自动沉淀闭环 | Week 1-4 内容积累 |
 | **Month 3** | 建立 `.ai/knowledge-base/` 跨 repo 共享知识层 | 3h | 跨项目模式复用 | Month 2 |
 
@@ -354,7 +354,7 @@ CodeHub/
 
 | 工具 | 用途 | 适用阶段 |
 |------|------|---------|
-| **aidoc-module-init**（你已有） | 模块 AGENTS.md 批量生成 | L0 扩展 |
+| **dockit-module-agents**（你已有） | 模块 AGENTS.md 批量生成 | L0 扩展 |
 | **dg (decision graph)** | 文本化知识图谱 CLI | L4 + L2 |
 | **adr-tools** | ADR 生命周期管理 | L2 |
 | **claude-memory-compiler** | 会话→知识节点编译 | L3 自动提取 |
@@ -365,7 +365,7 @@ CodeHub/
 
 ## 核心结论
 
-你当前的知识管理体系在**结构层**已经相当成熟 —— aidoc 管线 + 分层 AGENTS.md 的模式在业界属于前 10% 的水平。要构建真正的专家库，关键是**补全三个缺失的维度**：
+你当前的知识管理体系在**结构层**已经相当成熟 —— dockit 管线 + 分层 AGENTS.md 的模式在业界属于前 10% 的水平。要构建真正的专家库，关键是**补全三个缺失的维度**：
 
 1. **经验维度**（L3 learnings/）— 让踩过的坑不再白踩
 2. **决策维度**（L2 ADR）— 让"为什么"与"是什么"一起保存
@@ -405,4 +405,4 @@ CodeHub/
 2. 如何从开发会话中自动提取经验知识？（L3 自动提取）
 3. 架构决策记录（ADR）的最新格式和工具链是什么？（L2）
 4. 跨模块知识图谱有哪些可行的组织方式？（L4）
-5. 业界知识管理方案中哪些可直接集成到现有 aidoc + BMAD 体系中？（集成策略）
+5. 业界知识管理方案中哪些可直接集成到现有 dockit + BMAD 体系中？（集成策略）

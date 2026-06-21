@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<BugCollection version="4.8">
+  <BugInstance type="SQL_INJECTION_JDBC" priority="1" abbrev="SQL">
+    <ShortMessage>SQL injection</ShortMessage>
+    <LongMessage>SQL query built from non-constant String</LongMessage>
+    <SourceLine classname="com.example.UserService" sourcepath="src/main/java/com/example/UserService.java" start="155" end="155"/>
+  </BugInstance>
+  <BugInstance type="NP_NULL_ON_SOME_PATH" priority="2" abbrev="NP">
+    <ShortMessage>Null pointer</ShortMessage>
+    <LongMessage>Possible null pointer dereference</LongMessage>
+    <SourceLine classname="com.example.OrderService" sourcepath="src/main/java/com/example/OrderService.java" start="42" end="42"/>
+  </BugInstance>
+</BugCollection>

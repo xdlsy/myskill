@@ -1,0 +1,15 @@
+{
+  "results": [
+    {
+      "check_id": "java.lang.security.audit.sqli.jdbc-sqli",
+      "path": "src/main/java/com/example/UserService.java",
+      "start": {"line": 60, "col": 9},
+      "end": {"line": 60, "col": 80},
+      "extra": {
+        "severity": "ERROR",
+        "message": "Detected SQL statement built from user input",
+        "lines": "stmt.execute(\"SELECT * FROM t WHERE id=\" + id)"
+      }
+    }
+  ]
+}

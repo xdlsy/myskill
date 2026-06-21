@@ -1,0 +1,14 @@
+{
+  "Issues": [
+    {
+      "FromLinter": "funlen",
+      "Text": "Function 'Process' is too long: 85 > 50",
+      "Pos": {"Filename": "src/service/cache.go", "Line": 42, "Column": 1}
+    },
+    {
+      "FromLinter": "gofmt",
+      "Text": "File is not gofmt-ed",
+      "Pos": {"Filename": "src/util/util.go", "Line": 10, "Column": 1}
+    }
+  ]
+}

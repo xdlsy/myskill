@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<checkstyle version="10.0">
+  <file name="/abs/src/main/java/com/example/Util.java">
+    <error line="12" column="5" severity="error" message="File length is 850 lines (max allowed 800)" source="com.puppycrawl.tools.checkstyle.checks.sizes.FileLengthCheck"/>
+  </file>
+</checkstyle>

@@ -1,0 +1,14 @@
+[
+  {
+    "code": "E501",
+    "message": "Line too long (135 > 120)",
+    "filename": "/abs/browser_proxy/main.py",
+    "location": {"row": 30, "column": 121}
+  },
+  {
+    "code": "SIM102",
+    "message": "Use a single if statement instead of nested if statements",
+    "filename": "/abs/browser_proxy/api/page.py",
+    "location": {"row": 14, "column": 1}
+  }
+]

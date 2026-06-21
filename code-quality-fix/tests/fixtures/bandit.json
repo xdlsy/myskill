@@ -1,0 +1,14 @@
+{
+  "results": [
+    {
+      "issue_severity": "HIGH",
+      "issue_confidence": "HIGH",
+      "test_id": "B608",
+      "issue_text": "Possible SQL injection via string-based query construction",
+      "filename": "/abs/browser_proxy/db.py",
+      "line_number": 55,
+      "line_range": [55],
+      "issue_cwe": {"id": 89, "link": "x"}
+    }
+  ]
+}

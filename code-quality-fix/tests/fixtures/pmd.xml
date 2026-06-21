@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<pmd version="6.55">
+  <file name="/abs/src/main/java/com/example/BigService.java">
+    <violation beginline="200" endline="280" rule="ExcessiveMethodLength" ruleset="design" priority="3">
+      This method has 80 lines, exceeds 50
+    </violation>
+  </file>
+</pmd>
