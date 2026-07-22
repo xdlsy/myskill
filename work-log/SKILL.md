@@ -81,7 +81,7 @@ description: Use when ending the workday to log what you did (takes a brain-dump
 **检测规则：** 某周期「今天结束」= 今天是其结束日 且 该周期尚无报告（查 `reports/...` 与 `last_generated` 游标）。同时检测 **漏掉的周期**：任何在 `last_generated[类型]` 之后结束、却还没有报告的周期 → 提示补生成。
 
 **命中时：** 列出所有结束/已结束的周期，生成前询问确认，例如：
-> 今天是 7 月最后一天（也是周日），命中的周期：**周报 2026-W30** + **月报 2026-07**。要顺带生成吗？
+> 今天是 6 月 30 日，命中的周期：**月报 2026-06** + **半年报 2026-H1**。要顺带生成吗？
 
 手动：`/work-log weekly|monthly|halfyear|yearly [YYYY-Www | YYYY-MM | YYYY-H1 | YYYY]`。
 
@@ -99,6 +99,8 @@ description: Use when ending the workday to log what you did (takes a brain-dump
 报告只覆盖有记录的天。若有缺失，在报告里点名，如「本周 7 天中 7/22、7/24 无记录」。
 
 报告由源文件派生 → 可随时重新生成（覆盖）。覆盖已存在的报告前先确认。
+
+**报告生成成功后，把 `memory.md` 里 `last_generated[类型]` 更新为该周期标识**（如 `weekly: 2026-W30`、`monthly: 2026-06`）。自动顺带生成与手动 `/work-log <类型>` 生成都要更新——否则补漏检测的截止点无法推进。
 
 报告模板见 `templates/{weekly,monthly,halfyear,yearly}.md`。
 
