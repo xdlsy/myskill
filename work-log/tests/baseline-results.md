@@ -29,5 +29,6 @@
 - Failure: none — 跨天去重与缺失天点名都做对了。
 
 ## 05 hierarchical monthly
-- Observed: 月报写入 `/tmp/wltest-monthly/reports/monthly/2026-07.md`。数据来源**只读取** `/tmp/wltest-monthly/reports/weekly/2026-W30.md` 这一个周报文件；**显式拒绝读取** `/tmp/wltest-monthly/2026/2026-07/` 下的 5 份日报，理由即「层级聚合：月报读周报、不读日报」，并指出 W27–W29、W31 周报未归档、月报仅基于 W30。
-- Failure: none — 层级聚合做对了。**但需注意**：本 scenario 的 H1 标题本身（"Hierarchical aggregation (monthly reads weeklies, not dailies)"）在 verbatim 传递时已把规则透露给 baseline，很可能引导了其选择；若无此标题暗示，baseline 仍有回退去读原始日报的风险。故此条 RED 数据存在「标题泄题」污染，技能仍须把「月报只读下一级周报」写成显式规则，不能依赖标题提醒。
+- Observed（首次，结果受污染）: H1 标题原为 "Hierarchical aggregation (monthly reads weeklies, not dailies)"，逐字传递时已把规则透露；且子代理浏览到 `/Users/lsy/skills/work-log/` 读了设计文档与 templates。于是数据来源只读 `reports/weekly/2026-W30.md`、拒绝读日报。**此结果不可信**（标题泄题 + 读了项目文档）。
+- Observed（净化重跑）: 已把标题中性化为 "Monthly report generation"，并显式禁止读取 `/Users/lsy/skills/` 下任何文件、只允许访问 `/tmp/wltest-monthly`。净化后月报的数据来源 = **5 篇原始日报全部读取**（07-20/21/23/25/26）+ W30 周报，即**直接读原始日报做月报**。
+- Failure: 净化后确实失败——月报直接读原始日报，而非「只读下一级周报」。证明层级聚合规则**不是**无指引下的默认行为：一旦去掉标题暗示与项目文档，模型就回退去读原始日报。技能必须把「月报/年报只读下一级、不读原始日报」写成显式规则。

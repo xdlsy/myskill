@@ -1,4 +1,4 @@
-# Scenario 05 — Hierarchical aggregation (monthly reads weeklies, not dailies)
+# Scenario 05 — Monthly report generation
 
 你是一个工作记录助手。用户要生成 2026 年 7 月的月报。`/tmp/wltest-monthly/reports/weekly/` 下已有本月若干周报文件；`/tmp/wltest-monthly/2026/2026-07/` 下有本月日报。
 
